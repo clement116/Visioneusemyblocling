@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D → iframe | Générateur</title>
+<style>
+:root{color-scheme:dark;--bg:#0d1420;--panel:#172233;--line:#304158;--muted:#a9b8cb;--accent:#5b9cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f4f7fb;font:15px system-ui,Segoe UI,Arial}
+header{padding:20px clamp(16px,4vw,48px);border-bottom:1px solid var(--line);background:#111b2a}
+h1{margin:0;font-size:clamp(22px,3vw,30px)}header p{margin:6px 0 0;color:var(--muted)}
+main{max-width:1200px;margin:auto;padding:22px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,.8fr);gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px;min-width:0}
+#viewport{height:min(62vh,620px);min-height:330px;background:#0a1019;border:1px solid var(--line);border-radius:11px;overflow:hidden;position:relative}
+#viewport canvas{width:100%;height:100%;display:block}
+.drop{margin-top:12px;border:2px dashed #506681;border-radius:12px;padding:18px;text-align:center;color:var(--muted);cursor:pointer}
+.drop.drag{border-color:var(--accent);background:#20344d}
+input[type=file]{display:none}button,.filebtn{border:1px solid #49617e;background:#263b56;color:white;border-radius:9px;padding:10px 12px;cursor:pointer;font:inherit}
+button:hover,.filebtn:hover{background:#345274}.primary{background:#2868cf;border-color:#2868cf}.primary:hover{background:#397be4}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.controls button{flex:1}
+h2{font-size:16px;margin:0 0 12px}h3{font-size:13px;color:#c0d0e2;margin:18px 0 8px}
+label{display:block;color:var(--muted);font-size:13px;margin:10px 0 5px}
+input[type=text],select,textarea{width:100%;border:1px solid #405570;background:#0e1826;color:#fff;border-radius:8px;padding:10px;font:inherit}
+textarea{min-height:128px;resize:vertical;font:12px ui-monospace,Consolas,monospace}
+.status{color:#9fdeb5;font-size:13px;min-height:20px;margin-top:8px;overflow-wrap:anywhere}
+.note{font-size:12px;color:var(--muted);line-height:1.55}.step{display:flex;gap:10px;margin:10px 0;color:#dce7f4;font-size:13px}.num{background:#294d7a;border-radius:20px;width:23px;height:23px;display:grid;place-items:center;flex:none}
+@media(max-width:850px){main{grid-template-columns:1fr;padding:12px}#viewport{height:48vh;min-height:280px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<header><h1>🧊 Générateur de visionneuse 3D → iframe</h1><p>Dépose un modèle, vérifie son aperçu, puis crée une page 3D et son code iframe.</p></header>
+<main>
+<section class="panel">
+ <div id="viewport"></div>
+ <div class="drop" id="drop"><strong>Dépose ton modèle 3D ici</strong><br>ou clique pour choisir un fichier .glb<br><span class="note">Le format GLB est recommandé : il contient généralement modèle, textures et matériaux dans un seul fichier.</span><input id="file" type="file" accept=".glb,model/gltf-binary"></div>
+ <div class="controls"><button id="reset">Recentrer</button><button id="autorotate">Rotation : arrêt</button><button id="fullscreen">Plein écran</button></div>
+ <div id="status" class="status">Aucun modèle chargé.</div>
+</section>
+<aside class="panel">
+ <h2>Créer ton iframe</h2>
+ <p class="note">Après avoir chargé un modèle, télécharge sa page de visionneuse. Héberge cette page sur Internet (GitHub Pages, Cloudflare Pages, etc.), puis colle son adresse publique ci-dessous.</p>
+ <label for="filename">Nom de la page à télécharger</label><input id="filename" type="text" value="mon-modele-3d.html">
+ <button class="primary" id="download" style="width:100%;margin-top:9px" disabled>Télécharger la page 3D</button>
+ <h3>Adresse publique de ta page 3D</h3>
+ <input id="url" type="text" placeholder="https://ton-site.pages.dev/mon-modele-3d.html">
+ <label for="width">Largeur</label><select id="width"><option value="100%">100%</option><option value="800px">800 px</option><option value="600px">600 px</option></select>
+ <label for="height">Hauteur</label><select id="height"><option value="600">600 px</option><option value="500">500 px</option><option value="700">700 px</option><option value="800">800 px</option></select>
+ <button class="primary" id="generate" style="width:100%;margin-top:10px">Générer le code iframe</button>
+ <label for="code">Code à coller dans Genially</label><textarea id="code" readonly placeholder="Le code iframe apparaîtra ici…"></textarea>
+ <div class="controls"><button id="copy" disabled>Copier le code</button></div>
+ <p class="note" id="embedStatus"></p>
+ <h3>Les 3 étapes</h3>
+ <div class="step"><span class="num">1</span><span>Charge un fichier <b>.glb</b> et télécharge sa page 3D.</span></div>
+ <div class="step"><span class="num">2</span><span>Publie cette page HTML sur ton hébergement HTTPS.</span></div>
+ <div class="step"><span class="num">3</span><span>Colle l'adresse publique ici, génère le code et colle-le dans Genially.</span></div>
+ <p class="note">Important : le code iframe ne peut pas utiliser un fichier qui reste uniquement sur ton ordinateur. La page 3D doit être hébergée en ligne pour être visible par les autres.</p>
+</aside>
+</main>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const viewport=document.querySelector('#viewport');
+const scene=new THREE.Scene();scene.background=new THREE.Color('#0a1019');
+const camera=new THREE.PerspectiveCamera(45,1,.01,10000);camera.position.set(3,2.5,4);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;viewport.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
+scene.add(new THREE.HemisphereLight(0xffffff,0x64748b,2));
+const light=new THREE.DirectionalLight(0xffffff,2.5);light.position.set(4,7,5);scene.add(light);
+const fill=new THREE.DirectionalLight(0x9fc5ff,1);fill.position.set(-4,2,-4);scene.add(fill);
+const grid=new THREE.GridHelper(10,20,0x61758d,0x29384b);scene.add(grid);
+const loader=new GLTFLoader();let model=null,modelBytes=null,modelName='';
+function center(){if(!model)return;const b=new THREE.Box3().setFromObject(model),s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),m=Math.max(s.x,s.y,s.z)||1,d=m/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*1.55;controls.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(d*.85,d*.55,d*1.05));camera.near=Math.max(m/1000,.001);camera.far=m*100;camera.updateProjectionMatrix();grid.position.y=b.min.y;controls.update()}
+function load(file){if(!file)return;if(!file.name.toLowerCase().endsWith('.glb')){status('Choisis un fichier .glb. Pour les modèles .gltf, rassemble les textures ou exporte en GLB depuis ton logiciel.');return}
+ const reader=new FileReader();reader.onload=()=>{const buf=reader.result;loader.parse(buf,'',g=>{if(model)scene.remove(model);model=g.scene;scene.add(model);modelBytes=new Uint8Array(buf);modelName=file.name;center();document.querySelector('#download').disabled=false;status('Modèle chargé : '+file.name+' — prêt à exporter.');},e=>{console.error(e);status('Erreur : impossible de lire ce modèle.');})};reader.readAsArrayBuffer(file)}
+function status(t){document.querySelector('#status').textContent=t}
+document.querySelector('#file').onchange=e=>load(e.target.files[0]);
+const drop=document.querySelector('#drop');drop.onclick=()=>document.querySelector('#file').click();drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};drop.ondragleave=()=>drop.classList.remove('drag');drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');load(e.dataTransfer.files[0])};
+document.querySelector('#reset').onclick=center;let spin=false;document.querySelector('#autorotate').onclick=e=>{spin=!spin;controls.autoRotate=spin;e.target.textContent='Rotation : '+(spin?'activée':'arrêt')};document.querySelector('#fullscreen').onclick=()=>viewport.requestFullscreen?.();
+document.querySelector('#download').onclick=()=>{if(!modelBytes)return;const b64=bytesToBase64(modelBytes);const html=viewerTemplate(b64,modelName);const blob=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=safeName(document.querySelector('#filename').value||'mon-modele-3d.html');a.click();URL.revokeObjectURL(a.href);document.querySelector('#embedStatus').textContent='Page 3D téléchargée. Publie-la sur ton hébergement avant de générer un iframe fonctionnel.'};
+function bytesToBase64(bytes){let binary='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));return btoa(binary)}
+function safeName(s){s=s.trim().replace(/[^\w.-]+/g,'-');return s.toLowerCase().endsWith('.html')?s:s+'.html'}
+document.querySelector('#generate').onclick=()=>{const u=document.querySelector('#url').value.trim();if(!/^https:\/\/[^ ]+/i.test(u)){document.querySelector('#embedStatus').textContent='Ajoute d’abord l’adresse HTTPS publique de ta page 3D hébergée.';return}const w=document.querySelector('#width').value,h=document.querySelector('#height').value;const code='<iframe src="'+u.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" width="'+w+'" height="'+h+'" style="border:0;max-width:100%;" allowfullscreen loading="lazy"></iframe>';document.querySelector('#code').value=code;document.querySelector('#copy').disabled=false;document.querySelector('#embedStatus').textContent='Code prêt à copier dans Genially.'};
+document.querySelector('#copy').onclick=async()=>{const t=document.querySelector('#code').value;try{await navigator.clipboard.writeText(t);document.querySelector('#embedStatus').textContent='Code copié !'}catch{document.querySelector('#code').select();document.execCommand('copy');document.querySelector('#embedStatus').textContent='Code sélectionné/copier.'}};
+function viewerTemplate(b64,name){return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name.replace(/[<>&"]/g,'')}</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0a1019}canvas{display:block;width:100%;height:100%}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body><script type="module">import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';const scene=new THREE.Scene();scene.background=new THREE.Color('#0a1019');const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,10000);const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.appendChild(renderer.domElement);const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;scene.add(new THREE.HemisphereLight(0xffffff,0x64748b,2));const l=new THREE.DirectionalLight(0xffffff,2.5);l.position.set(4,7,5);scene.add(l);const f=new THREE.DirectionalLight(0x9fc5ff,1);f.position.set(-4,2,-4);scene.add(f);const grid=new THREE.GridHelper(10,20,0x61758d,0x29384b);scene.add(grid);const raw=atob('${b64}');const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);new GLTFLoader().parse(bytes.buffer,'',g=>{scene.add(g.scene);const b=new THREE.Box3().setFromObject(g.scene),s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),m=Math.max(s.x,s.y,s.z)||1,d=m/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*1.55;controls.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(d*.85,d*.55,d*1.05));camera.near=Math.max(m/1000,.001);camera.far=m*100;camera.updateProjectionMatrix();grid.position.y=b.min.y});function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener('resize',resize);resize();function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();<\/script></body></html>`}
+function resize(){camera.aspect=viewport.clientWidth/viewport.clientHeight;camera.updateProjectionMatrix();renderer.setSize(viewport.clientWidth,viewport.clientHeight)}new ResizeObserver(resize).observe(viewport);resize();function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+</script></body></html>
